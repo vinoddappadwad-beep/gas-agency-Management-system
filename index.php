@@ -1,67 +1,66 @@
-
 <?php
-include ('config.php');
+session_start();
+include 'config.php';
 
-if(isset($_POST['login'])) {
-    $username = $_POST['username'];
-    $password = $_POST['password'];
+$message = '';
 
-    $stmt = $conn->prepare("SELECT id, password, role FROM users WHERE username = ?");
-    $stmt->bind_param("s", $username);
-    $stmt->execute();
-    $result = $stmt->get_result();
 
-    if($row = $result->fetch_assoc()) {
-        if($password == $row['password']){
-            $_SESSION['user_id'] = $row['id'];
-            $_SESSION['role'] = $row['role'];
+if(isset($_SESSION['loggedin']) && $_SESSION['loggedin'] === true){
+    header("Location: dashboard.php");
+    exit;
+}
 
-            header("Location: view_customer.php");
-        } else {
-            $error = "Invalid Password";
-        }
+
+if($_SERVER['REQUEST_METHOD'] == 'POST'){
+    $username = $conn->real_escape_string($_POST['username']);
+    $password = $_POST['password']; 
+
+    $demoUser = 'admin';
+    $demoPassHash = password_hash('admin123', PASSWORD_DEFAULT);
+
+    
+    if($username === $demoUser && password_verify($password, $demoPassHash)){
+        $_SESSION['loggedin'] = true;
+        $_SESSION['username'] = $username;
+        header("Location: dashboard.php");
+        exit;
     } else {
-        $error = "User not found";
+        $message = "Invalid username or password.";
     }
 }
+
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Gas Agency Login</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Login - Gas Agency</title>
+<link rel="stylesheet" href="style.css" />
 </head>
 <body>
-    <div class="login-container">
-        <div class="login-card">
-            <h3 class="text-center mb-4">Gas Agency Login</h3>
-            <?php if(isset($error)) echo "<div class='alert alert-danger'>$error</div>"; ?>
-            <form method="POST">
-                <div class="mb-3">
-                    <label>Username</label>
-                    <input type="text" name="username" class="form-control" required>
-                </div>
-                <div class="mb-3">
-                    <label>Password</label>
-                    <input type="password" name="password" class="form-control" required>
-                </div>
-                <button type="submit" name="login" class="btn btn-primary w-100">Login</button>
-            </form>
-        </form>
-    
-    <div class="mt-3 text-center">
-        <p>New User? <a href="register.php" class="text-decoration-none">Registar Here</a></p>
-    </div>
-    
-</div> 
-
-
-</div> </div> ```
-            <br>
+<div class="container">
+    <h1>Gas Agency Login</h1>
+    <?php if($message): ?>
+        <div style="background:#e74c3c; color:#fff; padding:10px; border-radius:5px; margin-bottom:15px; text-align:center;">
+            <?php echo htmlspecialchars($message); ?>
         </div>
-        </div>
-    </div>
+    <?php endif; 
+    
+  ?>
+
+    <form method="post" action="">
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" required autocomplete="off" autofocus />
+
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required />
+
+        <input type="submit" value="Login" />
+    </form>
+    <p>New user? <a href="register.php">register here</a></p>
+</div>
+
 </body>
 </html>
