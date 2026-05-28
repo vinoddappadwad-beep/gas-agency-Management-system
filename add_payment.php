@@ -1,68 +1,73 @@
 <?php
+session_start();
 include 'config.php';
-if(!isset($_SESSION['user_id'])) { header("Location: index.php"); exit(); }
 
-if(isset($_POST['add_payment'])) {
-    $order_id = $_POST['order_id'];
-    $amount = $_POST['amount'];
-    $method = $_POST['payment_method'];
-    
-    $stmt = $conn->prepare("INSERT INTO payments (order_id, amount, payment_method) VALUES (?, ?, ?)");
-    $stmt->bind_param("isd", $order_id, $amount, $method);
-    $stmt->execute();
-    
-    $stmt2 = $conn->prepare("UPDATE orders SET status = 'delivered' WHERE id = ?");
-    $stmt2->bind_param("i", $order_id);
-    $stmt2->execute();
-    
-    $success = "Payment Recorded Successfully!";
+if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
+    header("Location: index.php");
+    exit;
 }
 
-$orders = mysqli_query($conn, "SELECT * FROM orders WHERE status = 'pending'");
+$message = '';
+$customers = $conn->query("SELECT id, name FROM customers ORDER BY name");
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $customer_id = intval($_POST['customer_id']);
+    $amount = floatval($_POST['amount']);
+    $payment_date = $_POST['payment_date'];
+
+    if ($customer_id && $amount > 0 && $payment_date) {
+        $sql = "INSERT INTO payments (customer_id, amount, payment_date) VALUES ($customer_id, $amount, '$payment_date')";
+        if ($conn->query($sql) === TRUE) {
+            // SUCCESS: Auto redirect to view_customer.php with success message
+            $_SESSION['success_message'] = "Payment of ₹" . number_format($amount, 2) . " added successfully.";
+            header("Location: view_customer.php");
+            exit;
+        } else {
+            $message = "Error: " . $conn->error;
+        }
+    } else {
+        $message = "Please fill all fields correctly.";
+    }
+}
 ?>
+
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Record Payment</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Payment - GAS_AGENCY</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container mt-4">
-        <h2>Record Payment</h2>
-        <a href="view_customer.php" class="btn btn-secondary mb-3">Back to Dashboard</a>
+<div class="container">
+    <h1>Add Payment</h1>
+    
+    <?php if ($message): ?>
+        <div class="error-msg"><?= htmlspecialchars($message) ?></div>
+    <?php endif; ?>
+    
+    <form method="post" action="">
+        <label for="customer_id">Select Customer:</label>
+        <select id="customer_id" name="customer_id" required>
+            <option value="">Choose Customer...</option>
+            <?php while ($row = $customers->fetch_assoc()): ?>
+                <option value="<?= $row['id'] ?>"><?= htmlspecialchars($row['name']) ?></option>
+            <?php endwhile; ?>
+        </select>
         
-        <?php if(isset($success)) echo "<div class='alert alert-success'>$success</div>"; ?>
+        <label for="amount">Amount (₹):</label>
+        <input type="number" id="amount" name="amount" required step="0.01" min="0" placeholder="0.00" />
         
-        <div class="card">
-            <div class="card-body">
-                <h5>Pending Orders</h5>
-                <table class="table table-bordered">
-                    <thead>
-                        <tr>
-                            <th>Order ID</th>
-                            <th>Customer ID</th>
-                            <th>Cylinders</th>
-                            <th>Amount</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php while($order = mysqli_fetch_assoc($orders)): ?>
-                        <tr>
-                            <td><?php echo $order['id']; ?></td>
-                            <td><?php echo $order['customer_id']; ?></td>
-                            <td><?php echo $order['cylinder_count']; ?></td>
-                            <td>₹<?php echo $order['total_amount']; ?></td>
-                            <td>
-                                <button class="btn btn-primary btn-sm" onclick="showPaymentForm(<?php echo $order['id']; ?>, <?php echo $order['total_amount']; ?>)">Pay</button>
-                            </td>
-                        </tr>
-                        <?php endwhile; ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+        <label for="payment_date">Payment Date:</label>
+        <input type="date" id="payment_date" name="payment_date" required />
+        
+        <input type="submit" value="Add Payment" />
+    </form>
+    
+    <div style="text-align: center; margin-top: 20px;">
+        <a href="dashboard.php" class="back-btn">← Back to Dashboard</a>
     </div>
+</div>
 </body>
 </html>
