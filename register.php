@@ -1,23 +1,13 @@
 <?php
+$message = '';
 
-include('config.php'); 
+if($_SERVER['REQUEST_METHOD'] == 'POST'){
+    $username = $_POST['username'];
+    $password = $_POST['password'];
 
-if(isset($_POST['register'])){
-    $u = $_POST['username'];
-    $p = $_POST['password'];
-    $r = $_POST['role'];
 
-    $sql = "INSERT INTO users (username, password, role) VALUES ('$u', '$p', '$r')";
-    
-    if(mysqli_query($conn, $sql)){
-        
-        echo "<script>
-                alert('Registion Successful! you can now login');
-                window.location.href='index.php';
-              </script>";
-    } else {
-        echo "<div class='alert alert-danger'>Error: " . mysqli_error($conn) . "</div>";
-    }
+    header("Location: index.php");
+    exit;
 }
 ?>
 
@@ -26,43 +16,76 @@ if(isset($_POST['register'])){
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register - Gas Agency</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <title>Gas Agency Register</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            width: 300px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(128,128,128,0.3);
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        input {
+            width: 100%;
+            padding: 8px 12px;
+            margin: 8px 0 16px 0;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+        button {
+            width: 100%;
+            background-color: #0052cc;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 3px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #003d99;
+        }
+        .login-link {
+            text-align: center;
+            margin-top: 15px;
+        }
+    </style>
 </head>
-<body class="login-body">
 
-    <div class="login-container">
-        <div class="login-card">
-            <h3 class="text-center mb-4">Register User</h3>
+<body>
 
-            <form action="register.php" method="POST">
-                <div class="mb-3 text-start">
-                    <label class="form-label">Username</label>
-                    <input type="text" name="username" class="form-control" placeholder="Enter Name" required>
-                </div>
-                
-                <div class="mb-3 text-start">
-                    <label class="form-label">Password</label>
-                    <input type="password" name="password" class="form-control" placeholder="Enter Password" required>
-                </div>
+<div class="container">
+    <h2>Gas Agency Registration</h2>
 
-                <div class="mb-3 text-start">
-                    <label class="form-label">Role</label>
-                    <select name="role" class="form-control">
-                        <option value="user">User</option>
-                        <option value="admin">Admin</option>
-                    </select>
-                </div>
+   
+    <?php if($message) echo " style='color:green;text-align:center;'>$message</p>";
 
-                <button type="submit" name="register" class="btn btn-primary w-100 py-2">Register</button>
-            </form>
+    
+?>
+    <form method="post">
+        <input type="text" name="username" placeholder="Enter Username" required>
+        <input type="password" name="password" placeholder="Enter Password" required>
+        <button type="submit">Register</button>
+    </form>
 
-            <div class="mt-4 text-center">
-                <p>already have an account? <a href="index.php" class="text-decoration-none">Login Hear</a></p>
-            </div>
-        </div>
+    <div class="login-link">
+        <p>Already have an account? <a href="index.php">Login here</a></p>
     </div>
+</div>
 
 </body>
 </html>
