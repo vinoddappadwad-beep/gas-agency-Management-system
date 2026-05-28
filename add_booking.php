@@ -1,75 +1,81 @@
 <?php
-include('config.php'); 
-$price_per_cylinder = 950;
+session_start();
+include 'config.php';
 
-if(isset($_GET['customer_id'])) {
-    $customer_id = $_GET['customer_id'];
-    
-    
-    $query = "SELECT * FROM customers WHERE id = '$customer_id'";
-    $result = mysqli_query($conn, $query);
-    $customer_data = mysqli_fetch_assoc($result);
+if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
+    header("Location: index.php");
+    exit;
+}
+
+$message = '';
+$customers = $conn->query("SELECT id, name FROM customers ORDER BY name");
+
+
+$has_customers = $customers->num_rows > 0;
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $customer_id = intval($_POST['customer_id']);
+    $booking_date = $_POST['booking_date'];
+
+    if ($customer_id > 0 && $booking_date) {
+        $sql = "INSERT INTO bookings (customer_id, booking_date) VALUES ($customer_id, '$booking_date')";
+        if ($conn->query($sql) === TRUE) {
+            
+            $_SESSION['success_message'] = "Booking added successfully.";
+            header("Location: view_customer.php");
+            exit;
+        } else {
+            $message = "Database Error: " . $conn->error;
+        }
+    } else {
+        $message = "Please select a customer and booking date.";
+    }
 }
 ?>
 
 <!DOCTYPE html>
-<html lang="mr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Place New Booking</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Booking - GAS_AGENCY</title>
+    <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-light">
-
-<div class="container mt-4">
-    <div class="card">
-        <div class="card-header bg-primary text-white">
-            <h4>Place New Booking</h4>
+<body>
+<div class="container">
+    <h1>Add New Booking</h1>
+    
+    <?php if ($message): ?>
+        <div class="error-msg"><?= htmlspecialchars($message) ?></div>
+    <?php endif; ?>
+    
+    <?php if (!$has_customers): ?>
+        <div class="warning-msg">
+            <p>⚠️ No customers found! <a href="add_customer.php">Add customer first</a></p>
         </div>
-        <div class="card-body">
-
+    <?php else: ?>
+        <form method="post" action="">
+            <label for="customer_id">Select Customer:</label>
+            <select id="customer_id" name="customer_id" required>
+                <option value="">Choose Customer...</option>
+                <?php 
+                $customers->data_seek(0); 
+                while ($row = $customers->fetch_assoc()): ?>
+                    <option value="<?= $row['id'] ?>"><?= htmlspecialchars($row['name']) ?></option>
+                <?php endwhile; ?>
+            </select>
             
-            <h5>Customer Details</h5>
-            <p><strong>Name:</strong> <?php echo $customer_data['name']; ?></p>
-            <p><strong>Phone:</strong> <?php echo $customer_data['phone']; ?></p>
-            <p><strong>Gas ID:</strong> <?php echo $customer_data['gas_id']; ?></p>
-            <hr>
-
+            <label for="booking_date">Booking Date:</label>
+            <input type="date" id="booking_date" name="booking_date" required />
             
-            <form method="POST" action="process_booking.php">
-                <input type="hidden" name="customer_id" value="<?php echo $customer_id; ?>">
-
-                
-                <div class="mb-3">
-                    <label class="form-label">Cylinders Required</label>
-                    <input type="number" id="cylinders" name="cylinders" class="form-control" min="1" max="10" value="1" required>
-                </div>
-
-                
-                <div class="mb-3">
-                    <label class="form-label">Total Amount (₹<span id="price_per_cylinder"><?php echo $price_per_cylinder; ?></span> per cylinder)</label>
-                    <input type="text" id="total_amount" name="amount" class="form-control" value="<?php echo $price_per_cylinder; ?>" readonly>
-                </div>
-
-                <button type="submit" name="place_order" class="btn btn-success">Place Order</button>
-                <a href="view_customer.php" class="btn btn-secondary">Back</a>
-            </form>
-        </div>
+            <input type="submit" value="Add Booking" />
+        </form>
+    <?php endif; ?>
+    
+    <script></script><div style="text-align: center; margin-top: 20px;">
+        <a href="dashboard.php" class="back-btn">← Back to Dashboard</a>
+        <a href="view_customer.php" class="back-btn">👥 View Customers</a>
     </div>
 </div>
-
-<script>
-const cylinderInput = document.getElementById('cylinders');
-const amountInput = document.getElementById('total_amount');
-const price = <?php echo $price_per_cylinder; ?>;
-
-
-cylinderInput.addEventListener('input', function() {
-    const quantity = parseInt(this.value) || 1;
-    const total = quantity * price;
-    amountInput.value = total;
-});
-</script>
-
 </body>
 </html>
