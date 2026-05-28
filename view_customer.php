@@ -1,64 +1,75 @@
 <?php
+session_start();
 include 'config.php';
-if(!isset($_SESSION['user_id'])) { header("Location: index.php"); exit(); }
 
-$customers = mysqli_query($conn, "SELECT * FROM customers ORDER BY id DESC");
+if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
+    header("Location: index.php");
+    exit;
+}
+
+// Get success message from session
+$success_message = isset($_SESSION['success_message']) ? $_SESSION['success_message'] : '';
+unset($_SESSION['success_message']);
+
+$result = $conn->query("SELECT * FROM customers ORDER BY id DESC");
 ?>
+
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Customer Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Customers - GAS_AGENCY</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  
-    <nav class="navbar navbar-dark bg-dark">
-        <div class="container-fluid">
-            <span class="navbar-brand mb-0 h1">Gas Agency Management</span>
-            <a href="index.php" class="btn btn-danger btn-sm">Logout</a>
+<div class="container">
+    <h1>Customer List</h1>
+    
+    <?php if ($success_message): ?>
+        <div class="success-msg">
+            ✅ <?= htmlspecialchars($success_message) ?>
         </div>
-    </nav>
-
-    <div class="container mt-4">
-        <div class="row">
-            <div class="col-md-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h4>Customer List</h4>
-                        <a href="add_customer.php" class="btn btn-success btn-sm float-end">Add New Customer</a>
-                    </div>
-                    <div class="card-body">
-                        <table class="table table-bordered">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Name</th>
-                                    <th>Phone</th>
-                                    <th>Address</th>
-                                    <th>Gas ID</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php while($row = mysqli_fetch_assoc($customers)): ?>
-                                <tr>
-                                    <td><?php echo $row['id']; ?></td>
-                                    <td><?php echo $row['name']; ?></td>
-                                    <td><?php echo $row['phone']; ?></td>
-                                    <td><?php echo $row['address']; ?></td>
-                                    <td><?php echo $row['gas_id']; ?></td>
-                                    <td>
-                                        <a href="add_booking.php?customer_id=<?php echo $row['id']; ?>" class="btn btn-primary btn-sm">Book</a>
-                                    </td>
-                                </tr>
-                                <?php endwhile; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <?php endif; ?>
+    
+    <div style="margin-bottom: 20px;">
+        <a href="add_customer.php" class="add-btn">➕ Add New Customer</a>
+        <a href="add_booking.php" class="add-btn">📅 Add Booking</a>
+        <a href="add_payment.php" class="add-btn">💰 Add Payment</a>
+        <a href="dashboard.php" class="back-btn">← Dashboard</a>
     </div>
+    
+    <?php if ($result->num_rows > 0): ?>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Address</th>
+                    <th>Phone</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php while ($row = $result->fetch_assoc()): ?>
+                <tr>
+                    <td><strong><?= $row['id'] ?></strong></td>
+                    <td><?= htmlspecialchars($row['name']) ?></td>
+                    <td><?= htmlspecialchars($row['address']) ?></td>
+                    <td><?= htmlspecialchars($row['phone']) ?></td>
+                    <td>
+                        <a href="add_booking.php?customer=<?= $row['id'] ?>" class="action-btn">Book</a>
+                        <a href="add_payment.php?customer=<?= $row['id'] ?>" class="action-btn">Pay</a>
+                    </td>
+                </tr>
+                <?php endwhile; ?>
+            </tbody>
+        </table>
+    <?php else: ?>
+        <div class="no-data">
+            <p>No customers found. <a href="add_customer.php">Add first customer</a></p>
+        </div>
+    <?php endif; ?>
+</div>
 </body>
 </html>
